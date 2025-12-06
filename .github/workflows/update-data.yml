@@ -2,31 +2,50 @@ name: Update Football Data Weekly
 
 on:
   schedule:
-    - cron: '1 0 * * 1'  # Every Monday at 00:01 UTC
-  workflow_dispatch:  # Manual trigger button in GitHub
+    - cron: '0 3 * * 1'  # Every Monday 3 AM UTC
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-  scrape:
+  update:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        pip install requests beautifulsoup4 pandas lxml
-    
-    - name: Run scraper
-      run: python scraper.py
-      
-    - name: Commit updated data
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add data/*.csv
-        git diff --staged --quiet || git commit -m "Update football data - $(date +%Y-%m-%d)"
-        git push
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas lxml
+
+      - name: Run scraper with logs
+        run: |
+          python scraper.py 2>&1 | tee scrape.log  # Logs everything to file
+
+      - name: Check if CSV was created
+        run: |
+          if [ -f "data/big5_2024_25.csv" ]; then
+            echo "CSV created successfully!"
+            cat scrape.log
+          else
+            echo "FAILED: No CSV created. Check logs:"
+            cat scrape.log
+            exit 1
+          fi
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add data/big5_2024_25.csv
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update data $(date +%Y-%m-%d)"
+            git push
+          fi
+      - name: Check if CSV was created
+        run: |
+          if [ -f "data/big5_2024_25.csv" ]; then
