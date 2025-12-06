@@ -114,7 +114,8 @@ if len(filtered) == 0:
 else:
     top20 = filtered.sort_values("FINAL SCORE per 90", ascending=False).head(20)
     display_cols = ["Player", "Squad", "Nation", "Age", "Playing Time Min", "g+_proxy", "FINAL SCORE per 90"]
-    top20_display = top20[display_cols].copy() if else all(c in top20_display.columns)
+    top20_display = top20[display_cols].copy() if all(c in top20.columns for c in display_cols) else top20.head()
+    top20_display.columns = [c.replace('Playing Time Min', 'Minutes').replace('g+_proxy', 'g+ Proxy').replace('Squad', 'Team').replace('Nation', 'Nationality') for c in top20_display.columns]
 
     st.dataframe(top20_display.style.format({"FINAL SCORE per 90": "{:.3f}", "g+ Proxy": "{:.2f}"}), height=700)
 
